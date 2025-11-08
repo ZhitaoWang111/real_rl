@@ -81,99 +81,22 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
         self._panda_ctrl_ids = np.asarray(
             [self._model.actuator(f"actuator{i}").id for i in range(1, 8)]
         )
-        self._gripper_ctrl_id = self._model.actuator("fingers_actuator").id
+        self._gripper_ctrl_id = self._model.actuator("fingers_actuator").id 
         self._pinch_site_id = self._model.site("pinch").id
         self._block_z = self._model.geom("block").size[2]
 
-        # self.observation_space = gym.spaces.Dict(
-        #     {
-        #         "state": gym.spaces.Dict(
-        #             {
-        #                 "panda/tcp_pos": spaces.Box(
-        #                     -np.inf, np.inf, shape=(3,), dtype=np.float32
-        #                 ),
-        #                 "panda/tcp_vel": spaces.Box(
-        #                     -np.inf, np.inf, shape=(3,), dtype=np.float32
-        #                 ),
-        #                 "panda/gripper_pos": spaces.Box(
-        #                     -np.inf, np.inf, shape=(1,), dtype=np.float32
-        #                 ),
-        #                 # "panda/joint_pos": spaces.Box(-np.inf, np.inf, shape=(7,), dtype=np.float32),
-        #                 # "panda/joint_vel": spaces.Box(-np.inf, np.inf, shape=(7,), dtype=np.float32),
-        #                 # "panda/joint_torque": specs.Array(shape=(21,), dtype=np.float32),
-        #                 # "panda/wrist_force": specs.Array(shape=(3,), dtype=np.float32),
-        #                 "block_pos": spaces.Box(
-        #                     -np.inf, np.inf, shape=(3,), dtype=np.float32
-        #                 ),
-        #             }
-        #         ),
-        #     }
-        # )
 
         if self.image_obs:
-            # Origin
-            # self.observation_space = gym.spaces.Dict(
-            #     {
-            #         "state": gym.spaces.Dict(
-            #             {
-            #                 "panda/tcp_pos": spaces.Box(
-            #                     -np.inf, np.inf, shape=(3,), dtype=np.float32
-            #                 ),
-            #                 "panda/tcp_vel": spaces.Box(
-            #                     -np.inf, np.inf, shape=(3,), dtype=np.float32
-            #                 ),
-            #                 "panda/gripper_pos": spaces.Box(
-            #                     -np.inf, np.inf, shape=(1,), dtype=np.float32
-            #                 ),
-            #             }
-            #         ),
-            #         "images": gym.spaces.Dict(
-            #             {
-            #                 "front": gym.spaces.Box(
-            #                     low=0,
-            #                     high=255,
-            #                     shape=(render_spec.height, render_spec.width, 3),
-            #                     dtype=np.uint8,
-            #                 ), #front
-            #                 "wrist": gym.spaces.Box(
-            #                     low=0,
-            #                     high=255,
-            #                     shape=(render_spec.height, render_spec.width, 3),
-            #                     dtype=np.uint8,
-            #                 ),  #wrist
-            #             }
-            #         ),
-            #     }
-            # )
-
             # startear
             self.observation_space = gym.spaces.Dict(
             {
-                # "state": gym.spaces.Dict(
-                #     {
-                #         "tcp_pose": gym.spaces.Box(
-                #             -np.inf, np.inf, shape=(7,)
-                #         ),  # xyz + quat
-                #         "tcp_vel": gym.spaces.Box(-np.inf, np.inf, shape=(6,)),
-                #         "gripper_pose": gym.spaces.Box(-1, 1, shape=(1,)),
-                #         "tcp_force": gym.spaces.Box(-np.inf, np.inf, shape=(3,)),
-                #         "tcp_torque": gym.spaces.Box(-np.inf, np.inf, shape=(3,)),
-                #     }
-                # ),
-
-
                 "state": gym.spaces.Dict(
                     {
-                        "tcp_pose": gym.spaces.Box(
-                            -np.inf, np.inf, shape=(7,)
-                        ),  # xyz + quat
-                        # "tcp_vel": gym.spaces.Box(-np.inf, np.inf, shape=(6,)),
-                        # "gripper_pose": gym.spaces.Box(-1, 1, shape=(1,)),
-                        # "tcp_force": gym.spaces.Box(-np.inf, np.inf, shape=(3,)),
-                        # "tcp_torque": gym.spaces.Box(-np.inf, np.inf, shape=(3,)),
+                        "joint_pose": gym.spaces.Box(
+                            -1.0, 1.0, shape=(7,),dtype=np.float32
+                        ),
                     }
                 ),
-
                 "images": gym.spaces.Dict(
                     {key: gym.spaces.Box(0, 255, shape=(128, 128, 3), dtype=np.uint8) 
                                 for key in config.REALSENSE_CAMERAS}
@@ -381,7 +304,7 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
             obs["images"] = {}
             # obs["images"]["front"], obs["images"]["wrist"] = self.render()
             # import pdb; pdb.set_trace()
-            obs["images"]["wrist"] = self.render()[0]
+            obs["images"]["wrist"] = self.render()
         else:
             block_pos = self._data.sensor("block_pos").data.astype(np.float32)
             obs["state"]["block_pos"] = block_pos
