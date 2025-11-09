@@ -4,7 +4,8 @@ from experiments.object_handover.config import TrainConfig as ObjectHandoverTrai
 from experiments.egg_flip.config import TrainConfig as EggFlipTrainConfig
 
 # startear add
-from experiments.pick_cube_sim.config import TrainConfig as PickCubeTrainConfig
+# from experiments.pick_cube_sim.config import TrainConfig as PickCubeTrainConfig
+from experiments.pick_cube_sim.config_pika import TrainConfig as PickCubeTrainConfig
 
 CONFIG_MAPPING = {
                 "ram_insertion": RAMInsertionTrainConfig,

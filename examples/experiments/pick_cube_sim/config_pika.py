@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import jax
 import jax.numpy as jnp
@@ -8,7 +9,7 @@ from franka_env.envs.wrappers import (
     SpacemouseIntervention,
     MultiCameraBinaryRewardClassifierWrapper,
     GripperCloseEnv,
-    # KeyBoardIntervention2
+    # PikaIntervention2
 )
 from franka_env.envs.relative_env import RelativeFrame
 from franka_env.envs.franka_env import DefaultEnvConfig
@@ -20,13 +21,16 @@ from serl_launcher.networks.reward_classifier import load_classifier_func
 # from experiments.ram_insertion.wrapper import RAMEnv
 from examples.experiments.config import DefaultTrainingConfig
 from examples.experiments.ram_insertion.wrapper import RAMEnv
-
+import rospy
+from data_msgs.msg import TeleopStatus
 from franka_sim.envs.panda_pick_gym_env import PandaPickCubeGymEnv
+from franka_sim.envs.piper_gym_env import PiperPickCubeGymEnv
 
 class EnvConfig(DefaultEnvConfig):
+    ACTOR = True
     SERVER_URL = "http://127.0.0.2:5000/"
     REALSENSE_CAMERAS = {
-        "wrist": {
+        "top": {
             "serial_number": "127122270146",
             "dim": (1280, 720),
             "exposure": 40000,
@@ -38,7 +42,7 @@ class EnvConfig(DefaultEnvConfig):
         # },
     }
     IMAGE_CROP = {
-        "wrist": lambda img: img[150:450, 350:1100],
+        "top": lambda img: img[150:450, 350:1100],
         # "wrist_2": lambda img: img[100:500, 400:900],
     }
     TARGET_POSE = np.array([0.5881241235410154,-0.03578590131997776,0.27843494179085326, np.pi, 0, 0])
@@ -95,8 +99,8 @@ class EnvConfig(DefaultEnvConfig):
 
 
 class TrainConfig(DefaultTrainingConfig):
-    image_keys = ["wrist"]
-    classifier_keys = ["wrist"]
+    image_keys = ["top"]
+    classifier_keys = ["top"]
     proprio_keys = ["joint_pose"]
     buffer_period = 1000
     checkpoint_period = 5000
@@ -111,13 +115,15 @@ class TrainConfig(DefaultTrainingConfig):
         #     save_video=save_video,
         #     config=EnvConfig(),
         # )
-        env = PandaPickCubeGymEnv(render_mode=render_mode, image_obs=True, hz=8, config=EnvConfig())
+        if fake_env:
+            EnvConfig.ACTOR = False
+        env = PiperPickCubeGymEnv(render_mode=render_mode, image_obs=True, hz=8, config=EnvConfig())
         classifier=False
         # fake_env=True
         # env = GripperCloseEnv(env)
         if not fake_env:
             # env = SpacemouseIntervention(env)
-            env = KeyBoardIntervention2(env)
+            env = PikaIntervention2(env)
             pass
         # env = RelativeFrame(env)
         # env = Quat2EulerWrapper(env)
@@ -148,20 +154,26 @@ class TrainConfig(DefaultTrainingConfig):
 import glfw
 import pynput as keyboard
 import gymnasium as gym
-class KeyBoardIntervention2(gym.ActionWrapper):
+class PikaIntervention2(gym.ActionWrapper):
     def __init__(self, env, action_indices=None):
         super().__init__(env)
-
+        rospy.init_node('pika_intervention_test', anonymous=True)
         self.gripper_enabled = True
         if self.action_space.shape == (6,):
             self.gripper_enabled = False
         self.action_indices = action_indices
-        self.intervened = False                                                     # 是用pika的动作，还是用智能体原来的动作
+        self.intervened = False   
+        self.last_quit = None
+        self.success = False                                                  # 是用pika的动作，还是用智能体原来的动作
         self.human_action = np.array([0, 0, 0, 0, 0, 0, 0], dtype=np.float32)     # pika当前的动作, 目前定义为7维（含夹爪）
-
-        listener = keyboard.Listener(on_press=self.on_key)
-        listener.daemon = True   # 随主程序退出
-        listener.start()
+        rospy.Subscriber('/teleop_status', TeleopStatus, self.teleop_callback) # 监听pika信号
+        try:
+            from pynput import keyboard
+            listener = keyboard.Listener(on_press=self.on_key)
+            listener.daemon = True   # 随主程序退出
+            listener.start()
+        except Exception as e:
+            print(f"[Warning] Keyboard listener disabled: {e}")
 
     def on_key(self, key):
         # 分号在 pynput 里是 KeyCode，需要这样比
@@ -169,9 +181,16 @@ class KeyBoardIntervention2(gym.ActionWrapper):
             if key.char == ';':
                 self.intervened = not self.intervened
                 print(f"======== [Intervention] -> {self.intervened} ========")
+            elif key.char == 'q':
+                self.success = True
+                print(f"======== [Success] -> {self.success} ========")
         except AttributeError:
             # 其他特殊键不处理
             pass
+    def teleop_callback(self, msg):
+        if self.last_quit is not None and self.last_quit != msg.quit:
+            self.intervened = not self.intervened
+        self.last_quit = msg.quit
 
 
     def action(self, action: np.ndarray) -> np.ndarray:
@@ -185,13 +204,23 @@ class KeyBoardIntervention2(gym.ActionWrapper):
             expert_a = filtered_expert_a
 
         if self.intervened:
+            print("[Info] Using intervened teleop robot actions")
+            ## 读取当前机械臂关节角度
+
+            
+            expert_a = np.array([0.0, 0.82699825, -0.88696335, 0, 0.92764398, 0, 1], dtype=np.float32)
             return expert_a, True
         else:
+            print("[Info] Using agent robot actions")
             return action, False
 
     def step(self, action):
         new_action, replaced = self.action(action)
 
+        if self.success:
+            self.env.success = True
+        else:
+            self.env.success = False
         obs, rew, done, truncated, info = self.env.step(new_action)
         if replaced:
             info["intervene_action"] = new_action
@@ -199,5 +228,6 @@ class KeyBoardIntervention2(gym.ActionWrapper):
     
     def reset(self, **kwargs):
         obs, info = self.env.reset(**kwargs)
+        self.success = False
         self.gripper_state = 'open'
         return obs, info

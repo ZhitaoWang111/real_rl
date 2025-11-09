@@ -135,12 +135,12 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
             #                     shape=(render_spec.height, render_spec.width, 3),
             #                     dtype=np.uint8,
             #                 ), #front
-            #                 "wrist": gym.spaces.Box(
+            #                 "top": gym.spaces.Box(
             #                     low=0,
             #                     high=255,
             #                     shape=(render_spec.height, render_spec.width, 3),
             #                     dtype=np.uint8,
-            #                 ),  #wrist
+            #                 ),  #top
             #             }
             #         ),
             #     }
@@ -151,7 +151,7 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
             {
                 # "state": gym.spaces.Dict(
                 #     {
-                #         "tcp_pose": gym.spaces.Box(
+                #         "joint_pose": gym.spaces.Box(
                 #             -np.inf, np.inf, shape=(7,)
                 #         ),  # xyz + quat
                 #         "tcp_vel": gym.spaces.Box(-np.inf, np.inf, shape=(6,)),
@@ -164,7 +164,7 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
 
                 "state": gym.spaces.Dict(
                     {
-                        "tcp_pose": gym.spaces.Box(
+                        "joint_pose": gym.spaces.Box(
                             -np.inf, np.inf, shape=(7,)
                         ),  # xyz + quat
                         # "tcp_vel": gym.spaces.Box(-np.inf, np.inf, shape=(6,)),
@@ -349,7 +349,7 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
         obs["state"] = {}
 
         tcp_pos = self._data.sensor("2f85/pinch_pos").data
-        obs["state"]["panda/tcp_pos"] = tcp_pos.astype(np.float32)
+        # obs["state"]["panda/tcp_pos"] = tcp_pos.astype(np.float32)
 
         # tcp_vel = self._data.sensor("2f85/pinch_vel").data
         # obs["state"]["panda/tcp_vel"] = tcp_vel.astype(np.float32)
@@ -379,9 +379,9 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
 
         if self.image_obs:
             obs["images"] = {}
-            # obs["images"]["front"], obs["images"]["wrist"] = self.render()
+            # obs["images"]["front"], obs["images"]["top"] = self.render()
             # import pdb; pdb.set_trace()
-            obs["images"]["wrist"] = self.render()[0]
+            obs["images"]["top"] = self.render()[0]
         else:
             block_pos = self._data.sensor("block_pos").data.astype(np.float32)
             obs["state"]["block_pos"] = block_pos
@@ -393,19 +393,19 @@ class PandaPickCubeGymEnv(MujocoGymEnv):
         # gripper_pos = np.array(
         #     [self._data.ctrl[self._gripper_ctrl_id] / 255], dtype=np.float32
         # )
-        final_tcp_pos = self.observation_space['state']['tcp_pose'].sample()
+        final_tcp_pos = self.observation_space['state']['joint_pose'].sample()
         final_tcp_pos[:3] = tcp_pos
         # final_tcp_vel = self.observation_space['state']['tcp_vel'].sample()
         # final_tcp_vel[:3] = tcp_vel
 
         obs['state'] = {
-            "tcp_pose": final_tcp_pos,
+            "joint_pose": final_tcp_pos,
             # "tcp_vel": final_tcp_vel,
             # "gripper_pose": gripper_pos,
             # "tcp_force": self.observation_space['state']['tcp_force'].sample(),
             # "tcp_torque": self.observation_space['state']['tcp_torque'].sample(),
         }
-        # obs["images"]["wrist_1"], obs["images"]["wrist_2"] = obs["images"]["front"], obs["images"]["wrist"]
+        # obs["images"]["wrist_1"], obs["images"]["wrist_2"] = obs["images"]["front"], obs["images"]["top"]
 
         # import pdb; pdb.set_trace()
         return obs

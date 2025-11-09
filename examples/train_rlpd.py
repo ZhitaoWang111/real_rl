@@ -382,13 +382,13 @@ def main(_):
     if FLAGS.exp_name == 'pick_cube_sim':
         if FLAGS.actor:
             env = config.get_environment(
-                fake_env=FLAGS.learner,
+                fake_env=FLAGS.learner,         # False
                 save_video=FLAGS.save_video,
                 classifier=True,
             )
         else:
             env = config.get_environment(
-                fake_env=FLAGS.learner,
+                fake_env=FLAGS.learner,         # True
                 save_video=FLAGS.save_video,
                 classifier=True,
                 render_mode="rgb_array"
@@ -443,13 +443,6 @@ def main(_):
     agent = jax.device_put(
         jax.tree_util.tree_map(jnp.array, agent), sharding.replicate()
     )
-
-    #### 查看网络结构 ####
-    # print('===========================================================')
-    # from flax.traverse_util import flatten_dict
-    # flat = flatten_dict(agent.state.params)
-    # for k in flat.keys():
-    #     print(k)
 
 
 

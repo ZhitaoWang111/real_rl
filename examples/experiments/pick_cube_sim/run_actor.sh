@@ -3,6 +3,7 @@ export XLA_PYTHON_CLIENT_MEM_FRACTION=.1 && \
 python ../../train_rlpd.py "$@" \
     --exp_name=pick_cube_sim \
     --actor \
+    --checkpoint_path="/home/zhou/wzt/real_rl/ckpt/test_1" 
 
 
 # python ../../train_rlpd.py "$@" \

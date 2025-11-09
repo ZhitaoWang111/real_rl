@@ -1,0 +1,31 @@
+# PyTorch (CUDA 11.8) 安装方式，需单独处理 index-url
+torch==2.2.1+cu118
+torchvision==0.17.1+cu118
+torchaudio==2.2.1
+--extra-index-url https://download.pytorch.org/whl/cu118
+# 标准依赖
+numpy==1.26.4
+rerun-sdk==0.22.1
+draccus==0.10.0
+serial==0.0.1
+pyserial==3.5
+deepdiff==7.0.1
+safetensors
+termcolor==2.4.0
+python-can
+piper_sdk
+opencv-python
+pyrealsense2
+datasets==2.19.0
+jsonlines==4.0.0
+av==14.2.0
+einops==0.8.0
+gymnasium==0.29.1
+pynput==1.7.7
+transformers==4.50.3
+num2words==0.5.14
+accelerate==1.7.0
+rospkg
+imageio[ffmpeg]>=2.34.0
+diffusers==0.33.1
+huggingface-hub[hf-transfer,cli]>=0.27.1; python_version < "4.0"

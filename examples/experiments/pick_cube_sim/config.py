@@ -26,7 +26,7 @@ from franka_sim.envs.panda_pick_gym_env import PandaPickCubeGymEnv
 class EnvConfig(DefaultEnvConfig):
     SERVER_URL = "http://127.0.0.2:5000/"
     REALSENSE_CAMERAS = {
-        "wrist": {
+        "top": {
             "serial_number": "127122270146",
             "dim": (1280, 720),
             "exposure": 40000,
@@ -38,7 +38,7 @@ class EnvConfig(DefaultEnvConfig):
         # },
     }
     IMAGE_CROP = {
-        "wrist": lambda img: img[150:450, 350:1100],
+        "top": lambda img: img[150:450, 350:1100],
         # "wrist_2": lambda img: img[100:500, 400:900],
     }
     TARGET_POSE = np.array([0.5881241235410154,-0.03578590131997776,0.27843494179085326, np.pi, 0, 0])
@@ -97,11 +97,11 @@ class EnvConfig(DefaultEnvConfig):
 class TrainConfig(DefaultTrainingConfig):
     # image_keys = ["wrist_1", "wrist_2"]
     # classifier_keys = ["wrist_1", "wrist_2"]
-    # proprio_keys = ["tcp_pose", "tcp_vel", "tcp_force", "tcp_torque", "gripper_pose"]
+    # proprio_keys = ["joint_pose", "tcp_vel", "tcp_force", "tcp_torque", "gripper_pose"]
 
-    image_keys = ["wrist"]
-    classifier_keys = ["wrist"]
-    proprio_keys = ["tcp_pose"]
+    image_keys = ["top"]
+    classifier_keys = ["top"]
+    proprio_keys = ["joint_pose"]
 
 
     buffer_period = 1000
