@@ -229,5 +229,6 @@ class PikaIntervention2(gym.ActionWrapper):
     def reset(self, **kwargs):
         obs, info = self.env.reset(**kwargs)
         self.success = False
+        self.intervened = False
         self.gripper_state = 'open'
         return obs, info

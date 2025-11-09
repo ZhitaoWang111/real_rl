@@ -128,7 +128,7 @@ class PiperPickCubeGymEnv(MujocoGymEnv):
 
         # 真实机器人
         self.cameras_cfg = {
-            "top": OpenCVCameraConfig(index_or_path=16, width=640, height=480, fps=30),
+            "top": OpenCVCameraConfig(index_or_path=10, width=640, height=480, fps=30),
         }
 
         if config.ACTOR:
@@ -261,9 +261,10 @@ class PiperPickCubeGymEnv(MujocoGymEnv):
             pass
         # if terminated:
         #     success = True
-        terminated = terminated or success
+        # terminated = terminated or success
+        done = terminated or success
 
-        return obs, rew, terminated, False, {"succeed": success, "grasp_penalty": grasp_penalty}
+        return obs, rew, done, False, {"succeed": success, "grasp_penalty": grasp_penalty}
 
     def _compute_success(self):
         return self.success
