@@ -249,7 +249,8 @@ class PikaIntervention2(gym.ActionWrapper):
         else:
             self.pika_follow_controller.stop_intervention()
             # print("[Info] Using agent robot actions")
-            action = np.array([0, 0, 0, 0, 0, 0, 0], dtype=np.float32)
+            # action = np.array([0, 0, 0, 0, 0, 0, 0], dtype=np.float32)
+            # action = self.normalize_joint_action(action)
             return action, False
 
     def step(self, action):
