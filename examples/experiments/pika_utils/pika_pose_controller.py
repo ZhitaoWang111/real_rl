@@ -6,6 +6,7 @@ import threading
 import math
 from examples.experiments.pika_utils.forward_inverse_kinematics import Arm_FK, Arm_IK
 import argparse
+from data_msgs.msg import Gripper
 
 class PikaPoseController:
     def __init__(self, 
@@ -21,6 +22,8 @@ class PikaPoseController:
         self.current_pika_pose = None
         self.current_pika_pose_matrix = None
         self.intervention_action = False
+        self.gripper_ctrl = None
+        self.gripper_distance = None
 
         # TODO: 0.19是什么? urdf路径
         args = argparse.Namespace()
@@ -32,7 +35,19 @@ class PikaPoseController:
         self.arm_ik = Arm_IK(args)
         self.robot_interface = robot_interface
         rospy.Subscriber('/pika_pose',PoseStamped, self.pika_pose_callback)
+        rospy.Subscriber(f'/gripper/data{self.args.index_name}', Gripper, self.gripper_callback)
         self.lock = threading.Lock()
+
+    def _normalize_gripper(self, distance):
+        min_d = 0.0
+        max_d = 0.0967
+        return (distance - min_d) / (max_d - min_d)
+
+    def gripper_callback(self, msg):
+        with self.lock:
+            self.gripper_distance = msg.distance
+            self.gripper_ctrl = self._normalize_gripper(msg.distance)
+
 
     def pika_pose_callback(self, msg):
         with self.lock:
@@ -158,9 +173,7 @@ class PikaPoseController:
         if current_joints is None:
             return np.zeros(7)
         joint_action = target_joints[:6]
-        # 添加夹爪动作（保持当前状态或根据需要设置）
-        gripper_action = 0.0  # 或者根据需要设置夹爪动作
-        full_action = np.concatenate([joint_action, [gripper_action]])
+        full_action = np.concatenate([joint_action, [self.gripper_ctrl]])
         print(f"full_action from pika controller:{full_action}")
         return full_action
     
