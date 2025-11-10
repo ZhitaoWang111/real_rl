@@ -35,7 +35,7 @@ class PikaPoseController:
         self.arm_ik = Arm_IK(args)
         self.robot_interface = robot_interface
         rospy.Subscriber('/pika_pose',PoseStamped, self.pika_pose_callback)
-        rospy.Subscriber(f'/gripper/data{self.args.index_name}', Gripper, self.gripper_callback)
+        rospy.Subscriber(f'/gripper/data', Gripper, self.gripper_callback)
         self.lock = threading.Lock()
 
     def _normalize_gripper(self, distance):
