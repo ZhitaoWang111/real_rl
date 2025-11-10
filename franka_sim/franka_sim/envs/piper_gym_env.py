@@ -128,7 +128,7 @@ class PiperPickCubeGymEnv(MujocoGymEnv):
 
         # 真实机器人
         self.cameras_cfg = {
-            "top": OpenCVCameraConfig(index_or_path=22, width=640, height=480, fps=30),
+            "top": OpenCVCameraConfig(index_or_path=16, width=640, height=480, fps=30),
         }
 
         if config.ACTOR:
