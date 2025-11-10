@@ -128,7 +128,7 @@ class PiperPickCubeGymEnv(MujocoGymEnv):
 
         # 真实机器人
         self.cameras_cfg = {
-            "top": OpenCVCameraConfig(index_or_path=10, width=640, height=480, fps=30),
+            "top": OpenCVCameraConfig(index_or_path=22, width=640, height=480, fps=30),
         }
 
         if config.ACTOR:
@@ -140,6 +140,8 @@ class PiperPickCubeGymEnv(MujocoGymEnv):
 
         self.piper_left = C_PiperInterface("can1")
         self.piper_left.ConnectPort()
+        self.piper_left.EnableArm(7)
+        self.piper_left.GripperCtrl(0,1000,0x01, 0)
 
         self.joint_limits = np.array([
             (-2.618, 2.618),
@@ -175,14 +177,14 @@ class PiperPickCubeGymEnv(MujocoGymEnv):
         print(f"[Info] ============ Reset done ============")
 
 
-        count = 0
-        while count < 400:
-            count += 1
-            # 控制左机械臂
-            # self.piper_left.MotionCtrl_2(0x01, 0x01, 30, 0x00)
-            # self.piper_left.JointCtrl(left_joint_0, left_joint_1, left_joint_2, left_joint_3, left_joint_4, left_joint_5)
-            # self.piper_left.GripperCtrl(abs(left_joint_6), 1000, 0x01, 0)
-            time.sleep(0.005)
+        # count = 0
+        # while count < 400:
+        #     count += 1
+        #     # 控制左机械臂
+        #     self.piper_left.MotionCtrl_2(0x01, 0x01, 5, 0x00)
+        #     self.piper_left.JointCtrl(left_joint_0, left_joint_1, left_joint_2, left_joint_3, left_joint_4, left_joint_5)
+        #     self.piper_left.GripperCtrl(abs(left_joint_6), 1000, 0x01, 0)
+        #     time.sleep(0.005)
 
 
         self.env_step = 0
@@ -222,10 +224,13 @@ class PiperPickCubeGymEnv(MujocoGymEnv):
         left_joint_5 = round(joint_targets[5] * factor)
         left_joint_6 = round(joint_targets[6] * 100 * 1000)
 
+        last_actions = [left_joint_0, left_joint_1, left_joint_2, left_joint_3, left_joint_4, left_joint_5, left_joint_6]
+        print(f"last_actions: {last_actions}")
+
         count = 0
 
         for _ in range(self._n_substeps):
-            self._data.ctrl = [left_joint_0, left_joint_1, left_joint_2, left_joint_3, left_joint_4, left_joint_5, left_joint_6]
+            self._data.ctrl = joint_targets
             mujoco.mj_step(self._model, self._data)
             self.render()
             time.sleep(0.002)
@@ -233,7 +238,7 @@ class PiperPickCubeGymEnv(MujocoGymEnv):
         # while count < 7:
         #     count += 1
         #     # 控制左机械臂
-        #     self.piper_left.MotionCtrl_2(0x01, 0x01, 30, 0x00)
+        #     self.piper_left.MotionCtrl_2(0x01, 0x01, 5, 0x00)
         #     self.piper_left.JointCtrl(left_joint_0, left_joint_1, left_joint_2, left_joint_3, left_joint_4, left_joint_5)
         #     self.piper_left.GripperCtrl(abs(left_joint_6), 1000, 0x01, 0)
         #     time.sleep(0.005)

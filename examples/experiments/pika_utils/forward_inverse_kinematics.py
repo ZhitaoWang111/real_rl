@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import casadi
-import meshcat.geometry as mg
+# import meshcat.geometry as mg
 import math
 import numpy as np
 import pinocchio as pin
 from pinocchio import casadi as cpin
 from pinocchio.visualize import MeshcatVisualizer
-from transformations import quaternion_from_matrix
+from examples.experiments.pika_utils.transformations import quaternion_from_matrix
 import os
 import sys
 import rospkg
@@ -67,7 +67,7 @@ class Arm_FK:
 
         rospack = rospkg.RosPack()
         # package_path = rospack.get_path('piper_description') 
-        package_path = "/home/jiziheng/Music/real_rl/piper_description"
+        package_path = "/home/zhou/wzt/real_rl/piper_description"
         urdf_path = os.path.join(package_path, 'urdf', 'piper_description' + ('-lift.urdf' if args.lift else '.urdf'))
 
         self.robot = pin.RobotWrapper.BuildFromURDF(
@@ -177,11 +177,11 @@ class Arm_IK:
         self.history_data = np.zeros(self.reduced_robot.model.nq)
 
         # # Initialize the Meshcat visualizer  for visualization
-        self.vis = MeshcatVisualizer(self.reduced_robot.model, self.reduced_robot.collision_model, self.reduced_robot.visual_model)
-        self.vis.initViewer(open=True)
-        self.vis.loadViewerModel("pinocchio")
-        self.vis.displayFrames(True, frame_ids=[113, 114], axis_length=0.15, axis_width=5)
-        self.vis.display(pin.neutral(self.reduced_robot.model))
+        # self.vis = MeshcatVisualizer(self.reduced_robot.model, self.reduced_robot.collision_model, self.reduced_robot.visual_model)
+        # self.vis.initViewer(open=True)
+        # self.vis.loadViewerModel("pinocchio")
+        # self.vis.displayFrames(True, frame_ids=[113, 114], axis_length=0.15, axis_width=5)
+        # self.vis.display(pin.neutral(self.reduced_robot.model))
 
         # Enable the display of end effector target frames with short axis lengths and greater width.
         frame_viz_names = ['ee_target']
@@ -197,19 +197,19 @@ class Arm_IK:
         )
         axis_length = 0.1
         axis_width = 10
-        for frame_viz_name in frame_viz_names:
-            self.vis.viewer[frame_viz_name].set_object(
-                mg.LineSegments(
-                    mg.PointsGeometry(
-                        position=axis_length * FRAME_AXIS_POSITIONS,
-                        color=FRAME_AXIS_COLORS,
-                    ),
-                    mg.LineBasicMaterial(
-                        linewidth=axis_width,
-                        vertexColors=True,
-                    ),
-                )
-            )
+        # for frame_viz_name in frame_viz_names:
+        #     self.vis.viewer[frame_viz_name].set_object(
+        #         mg.LineSegments(
+        #             mg.PointsGeometry(
+        #                 position=axis_length * FRAME_AXIS_POSITIONS,
+        #                 color=FRAME_AXIS_COLORS,
+        #             ),
+        #             mg.LineBasicMaterial(
+        #                 linewidth=axis_width,
+        #                 vertexColors=True,
+        #             ),
+        #         )
+        #     )
 
         # Creating Casadi models and data for symbolic computing
         self.cmodel = cpin.Model(self.reduced_robot.model)
@@ -283,7 +283,7 @@ class Arm_IK:
             self.init_data = motorstate
         self.opti.set_initial(self.var_q, self.init_data)
 
-        self.vis.viewer['ee_target'].set_transform(target_pose)     # for visualization
+        # self.vis.viewer['ee_target'].set_transform(target_pose)     # for visualization
 
         self.opti.set_value(self.param_tf, target_pose)
         # self.opti.set_value(self.var_q_last, self.init_data) # for smooth
@@ -306,7 +306,7 @@ class Arm_IK:
 
             self.history_data = sol_q
 
-            self.vis.display(sol_q)  # for visualization
+            # self.vis.display(sol_q)  # for visualization
 
             if motorV is not None:
                 v = motorV * 0.0

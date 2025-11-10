@@ -30,6 +30,8 @@ from serl_launcher.utils.train_utils import concat_batches
 
 from agentlace.trainer import TrainerServer, TrainerClient
 from agentlace.data.data_store import QueuedDataStore
+import signal
+import sys
 
 from serl_launcher.utils.launcher import (
     make_sac_pixel_agent,
@@ -41,6 +43,16 @@ from serl_launcher.utils.launcher import (
 from serl_launcher.data.data_store import MemoryEfficientReplayBufferDataStore
 
 from experiments.mappings import CONFIG_MAPPING
+
+stop_flag = False
+
+def signal_handler(signum, frame):
+    global stop_flag
+    print(f"\n[Info] Received signal {signum}, stopping...")
+    stop_flag = True
+
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
 
 FLAGS = flags.FLAGS
 
@@ -76,6 +88,7 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
     """
     This is the actor loop, which runs when "--actor" is set to True.
     """
+    global stop_flag
     if FLAGS.eval_checkpoint_step:
         success_counter = 0
         time_list = []
@@ -161,6 +174,9 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
 
     pbar = tqdm.tqdm(range(start_step, config.max_steps), dynamic_ncols=True)
     for step in pbar:
+        if stop_flag:  # 添加这个检查
+            print("[Info] Actor loop stopped by user")
+            break
         timer.tick("total")
 
         with timer.context("sample_actions"):

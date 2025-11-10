@@ -154,8 +154,9 @@ class TrainConfig(DefaultTrainingConfig):
 import glfw
 import pynput as keyboard
 import gymnasium as gym
-from pika_utils.pika_pose_controller import PikaPoseController
-from lerobot.common.robots.single_piper.single_piper import SinglePiper
+from examples.experiments.pika_utils.pika_pose_controller import PikaPoseController
+from std_msgs.msg import Bool 
+# from lerobot.common.robots.single_piper.single_piper import SinglePiper
 class PikaIntervention2(gym.ActionWrapper):
     def __init__(self, env, action_indices=None):
         super().__init__(env)
@@ -164,13 +165,13 @@ class PikaIntervention2(gym.ActionWrapper):
         if self.action_space.shape == (6,):
             self.gripper_enabled = False
         self.action_indices = action_indices
-        self.intervened = False   
+        self.intervened = False
         self.last_quit = None
         self.success = False                                                  # 是用pika的动作，还是用智能体原来的动作
         self.human_action = np.array([0, 0, 0, 0, 0, 0, 0], dtype=np.float32)     # pika当前的动作, 目前定义为7维（含夹爪）
 
         self.index_name = ""
-        rospy.Subscriber(f'/teleop_status{self.index_name}', TeleopStatus, self.teleop_callback) # 监听pika信号
+        rospy.Subscriber(f'/double_click_event', Bool, self.teleop_callback) # 监听pika信号
         self.pika_follow_controller = PikaPoseController(index_name=self.index_name,
                                                          robot_interface=env.piper_left)
         
@@ -195,9 +196,37 @@ class PikaIntervention2(gym.ActionWrapper):
             # 其他特殊键不处理
             pass
     def teleop_callback(self, msg):
-        if self.last_quit is not None and self.last_quit != msg.quit:
-            self.intervened = not self.intervened
-        self.last_quit = msg.quit
+        # if self.last_quit is not None and self.last_quit != msg.quit:
+        self.intervened = msg.data
+        if self.intervened:
+            self.pika_follow_controller.start_intervention()
+        # self.last_quit = msg.quit
+
+    def normalize_joint_action(self, joint_values):
+        """
+        将关节角度从实际范围缩放到 (-1, 1)
+        
+        Args:
+            joint_values: 7维数组,每个关节的实际角度值
+        
+        Returns:
+            normalized_values: 7维数组,缩放到 (-1, 1) 范围
+        """
+        joint_values = np.array(joint_values)
+        normalized = np.zeros_like(joint_values)
+        
+        for i in range(len(joint_values)):
+            low, high = self.env.joint_limits[i]
+            mid = (low + high) / 2.0
+            range_half = (high - low) / 2.0
+            
+            # 将 [low, high] 映射到 [-1, 1]
+            normalized[i] = (joint_values[i] - mid) / range_half
+            
+            # 裁剪到 [-1, 1] 范围内
+            normalized[i] = np.clip(normalized[i], -1.0, 1.0)
+        
+        return normalized
 
 
     def action(self, action: np.ndarray) -> np.ndarray:
@@ -213,13 +242,14 @@ class PikaIntervention2(gym.ActionWrapper):
         if self.intervened:
             # print("[Info] Using intervened teleop robot actions") 
             # TODO Pika计算末端pose的逻辑
-            goal_pose_xyzrpy = self.pika_follow_controller.calculate_piper_goal_pose()
+            # goal_pose_xyzrpy = self.pika_follow_controller.calculate_piper_goal_pose()
             target_joint_action = self.pika_follow_controller.get_target_joint_action()
-            expert_a = target_joint_action
+            expert_a = self.normalize_joint_action(target_joint_action)
             return expert_a, True
         else:
             self.pika_follow_controller.stop_intervention()
             # print("[Info] Using agent robot actions")
+            action = np.array([0, 0, 0, 0, 0, 0, 0], dtype=np.float32)
             return action, False
 
     def step(self, action):
