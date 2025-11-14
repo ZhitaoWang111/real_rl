@@ -148,7 +148,7 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
         make_trainer_config(),          # 通讯配置对象 port_number(learner 端监听的主端口) broadcast_port(learner 广播模型参数的端口) request_types
         data_stores=datastore_dict,     # 数据队列字典
         wait_for_server=True,           # 如果 learner 服务器还没启动，actor 会等待并自动重试连接
-        timeout_ms=3000,                # 每次网络请求的超时时间 3000ms
+        timeout_ms=8000,                # 每次网络请求的超时时间 3000ms
     )
 
     # Function to update the agent with new params

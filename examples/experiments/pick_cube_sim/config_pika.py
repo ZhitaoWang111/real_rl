@@ -25,6 +25,7 @@ import rospy
 from data_msgs.msg import TeleopStatus
 from franka_sim.envs.panda_pick_gym_env import PandaPickCubeGymEnv
 from franka_sim.envs.piper_gym_env import PiperPickCubeGymEnv
+import time
 
 class EnvConfig(DefaultEnvConfig):
     ACTOR = True
@@ -35,15 +36,15 @@ class EnvConfig(DefaultEnvConfig):
             "dim": (1280, 720),
             "exposure": 40000,
         },
-        # "wrist_2": {
+        # "wrist": {
         #     "serial_number": "127122270350",
         #     "dim": (1280, 720),
         #     "exposure": 40000,
         # },
     }
     IMAGE_CROP = {
-        "top": lambda img: img[150:450, 350:1100],
-        # "wrist_2": lambda img: img[100:500, 400:900],
+        "top"  : lambda img: img[150:450, 350:1100],
+        # "wrist": lambda img: img[100:500, 400:900],
     }
     TARGET_POSE = np.array([0.5881241235410154,-0.03578590131997776,0.27843494179085326, np.pi, 0, 0])
     GRASP_POSE = np.array([0.5857508505445138,-0.22036261105675414,0.2731021902359492, np.pi, 0, 0])
@@ -101,6 +102,8 @@ class EnvConfig(DefaultEnvConfig):
 class TrainConfig(DefaultTrainingConfig):
     image_keys = ["top"]
     classifier_keys = ["top"]
+    # image_keys = ["top", "wrist"]
+    # classifier_keys = ["top", "wrist"]
     proprio_keys = ["joint_pose"]
     buffer_period = 1000
     checkpoint_period = 5000
@@ -156,6 +159,7 @@ import pynput as keyboard
 import gymnasium as gym
 from examples.experiments.pika_utils.pika_pose_controller import PikaPoseController
 from std_msgs.msg import Bool 
+import threading
 # from lerobot.common.robots.single_piper.single_piper import SinglePiper
 class PikaIntervention2(gym.ActionWrapper):
     def __init__(self, env, action_indices=None):
@@ -167,7 +171,8 @@ class PikaIntervention2(gym.ActionWrapper):
         self.action_indices = action_indices
         self.intervened = False
         self.last_quit = None
-        self.success = False                                                  # 是用pika的动作，还是用智能体原来的动作
+        self.success = False      
+        self.terminated = False                                        # 是用pika的动作，还是用智能体原来的动作
         self.human_action = np.array([0, 0, 0, 0, 0, 0, 0], dtype=np.float32)     # pika当前的动作, 目前定义为7维（含夹爪）
 
         self.index_name = ""
@@ -177,21 +182,32 @@ class PikaIntervention2(gym.ActionWrapper):
         
         try:
             from pynput import keyboard
-            listener = keyboard.Listener(on_press=self.on_key)
-            listener.daemon = True   # 随主程序退出
-            listener.start()
+            self.listener = keyboard.Listener(on_press=self.on_key)
+            self.listener.daemon = True   # 随主程序退出
+            self.listener.start()
         except Exception as e:
             print(f"[Warning] Keyboard listener disabled: {e}")
+
+        self.reset_ready = False
 
     def on_key(self, key):
         # 分号在 pynput 里是 KeyCode，需要这样比
         try:
-            if key.char == ';':
-                self.intervened = not self.intervened
-                print(f"======== [Intervention] -> {self.intervened} ========")
-            elif key.char == 'q':
+            if key.char == 'q':
                 self.success = True
                 print(f"======== [Success] -> {self.success} ========")
+            elif key.char == 'w':
+                # 重新加紧夹爪
+                print(f"======== [Reset Gripper] ========")
+                self.env.piper_left.GripperCtrl(0, 1000, 0x01, 0)
+                self.reset_ready = True
+                print(f"======== [Reset Ready] -> {self.reset_ready} ========")
+            elif key.char == 'r':
+                # 中断
+                self.terminated = True
+            elif key == keyboard.Key.esc:  # 示例：按下 ESC 键退出
+                print("ESC 按键被按下，停止监听。")
+                self.listener.stop()
         except AttributeError:
             # 其他特殊键不处理
             pass
@@ -240,17 +256,23 @@ class PikaIntervention2(gym.ActionWrapper):
             expert_a = filtered_expert_a
 
         if self.intervened:
-            # print("[Info] Using intervened teleop robot actions") 
-            # TODO Pika计算末端pose的逻辑
-            # goal_pose_xyzrpy = self.pika_follow_controller.calculate_piper_goal_pose()
+            # step 1 : 得到接管后的绝对关节角
             target_joint_action = self.pika_follow_controller.get_target_joint_action()
-            expert_a = self.normalize_joint_action(target_joint_action)
+            # step 2 : 得到当前关节角
+            cur_joint_state = self.env.get_cur_joint_pos() 
+            # step 3 : 计算 delta 关节角
+            expert_a = target_joint_action - cur_joint_state
+            # step 4 : 将 delta 关节角 clip
+            max_delta_per_step = np.array([
+                0.05, 0.03, 0.03, 0.03, 0.03, 0.05, 0.005
+            ], dtype=np.float32)
+            expert_a = np.clip(expert_a, -max_delta_per_step, max_delta_per_step)
+            # step 5 : 将接管后的动作归一化到 (-1, 1)
+            expert_a = expert_a / max_delta_per_step
+
             return expert_a, True
         else:
             self.pika_follow_controller.stop_intervention()
-            # print("[Info] Using agent robot actions")
-            # action = np.array([0, 0, 0, 0, 0, 0, 0], dtype=np.float32)
-            # action = self.normalize_joint_action(action)
             return action, False
 
     def step(self, action):
@@ -260,14 +282,26 @@ class PikaIntervention2(gym.ActionWrapper):
             self.env.success = True
         else:
             self.env.success = False
-        obs, rew, done, truncated, info = self.env.step(new_action)
+        
+        if self.terminated:
+            self.env.terminated = True
+        else:
+            self.env.terminated = False
+        obs, rew, done, truncated, info = self.env.step(new_action, replaced)
         if replaced:
-            info["intervene_action"] = new_action
+            intervene_action = new_action
+            info["intervene_action"] = intervene_action
         return obs, rew, done, truncated, info
     
     def reset(self, **kwargs):
         obs, info = self.env.reset(**kwargs)
-        self.success = False
-        self.intervened = False
+        ### human reset logic ###
+        while not self.reset_ready:
+            print("[Info] 等待人工复位...按下 'w' 继续")
+            time.sleep(0.1)
+        time.sleep(1.5)
+        self.reset_ready = False
+        self.success    = False
+        self.terminated = False
         self.gripper_state = 'open'
         return obs, info

@@ -89,7 +89,6 @@ class PikaPoseController:
             joint_state.joint_state.joint_5 * 0.001 / 57.3,
             joint_state.joint_state.joint_6 * 0.001 / 57.3,
         ])
-        print("get demo joint positions:", joint_positions)
         return joint_positions
     
     def get_current_end_effector_pose(self):
@@ -174,7 +173,6 @@ class PikaPoseController:
             return np.zeros(7)
         joint_action = target_joints[:6]
         full_action = np.concatenate([joint_action, [self.gripper_ctrl]])
-        print(f"full_action from pika controller:{full_action}")
         return full_action
     
         

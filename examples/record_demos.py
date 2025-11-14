@@ -37,6 +37,9 @@ def main(_):
     
     while success_count < success_needed:
         actions = np.zeros(env.action_space.sample().shape) 
+        # actions = np.array([0.0, 1.03506108, -0.8056719, -0.01169284, 0.78328098, 0.0, 1], dtype=np.float32)  # 初始位置
+        # actions[1] = -1
+        # actions[2] = 1
         next_obs, rew, done, truncated, info = env.step(actions)
         returns += rew
         if "intervene_action" in info:

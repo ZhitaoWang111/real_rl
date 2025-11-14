@@ -22,6 +22,7 @@ class MujocoGymEnv(gym.Env):
 
     def __init__(
         self,
+        is_real_env: bool,
         is_actor: bool,
         xml_path: Path,
         seed: int = 0,
@@ -30,37 +31,29 @@ class MujocoGymEnv(gym.Env):
         time_limit: float = float("inf"),
         render_spec: GymRenderingSpec = GymRenderingSpec(),
     ):
-        # self._model = mujoco.MjModel.from_xml_path(xml_path.as_posix())
-        self._model = mujoco.MjModel.from_xml_path("/home/zhou/cfy/gs_sim/mujoco_menagerie/agilex_piper/piper.xml")
-
-        self._model.vis.global_.offwidth = render_spec.width
-        self._model.vis.global_.offheight = render_spec.height
-        self._data = mujoco.MjData(self._model)
-        self._model.opt.timestep = physics_dt
-        self._control_dt = control_dt
-        self._n_substeps = int(control_dt // physics_dt)
-        self._time_limit = time_limit
-        self._random = np.random.RandomState(seed)
-        self._viewer: Optional[mujoco.Renderer] = None
-        self._render_specs = render_spec
-
-        # 开一个物理引擎的线程
-        if is_actor:
-            self.handle = mujoco.viewer.launch_passive(self.model, self.data)
-            self.handle.cam.distance = 3
-            self.handle.cam.azimuth = 0
-            self.handle.cam.elevation = -30
-            self.opt = mujoco.MjvOption()
+        self.is_real_env = is_real_env
+        if self.is_real_env is False:
+            self._model = mujoco.MjModel.from_xml_path("/home/zhou/cfy/gs_sim/mujoco_menagerie/agilex_piper/piper.xml")
+            self._model.vis.global_.offwidth = render_spec.width
+            self._model.vis.global_.offheight = render_spec.height
+            self._data = mujoco.MjData(self._model)
+            self._model.opt.timestep = physics_dt
+            self._control_dt = control_dt
+            self._n_substeps = int(control_dt // physics_dt)
+            self._time_limit = time_limit
+            self._random = np.random.RandomState(seed)
+            self._viewer: Optional[mujoco.Renderer] = None
+            self._render_specs = render_spec
+            # 开一个物理引擎的线程
+            if is_actor:
+                self.handle = mujoco.viewer.launch_passive(self.model, self.data)
+                self.handle.cam.distance = 3
+                self.handle.cam.azimuth = 0
+                self.handle.cam.elevation = -30
+                self.opt = mujoco.MjvOption()
+                self.handle.opt = self.opt
 
     def render(self):
-        # if self._viewer is None:
-        #     self._viewer = mujoco.Renderer(
-        #         model=self._model,
-        #         height=self._render_specs.height,
-        #         width=self._render_specs.width,
-        #     )
-        # self._viewer.update_scene(self._data, camera=self._render_specs.camera_id)
-        # return self._viewer.render()
         self.sync()
 
     def close(self) -> None:
@@ -71,6 +64,7 @@ class MujocoGymEnv(gym.Env):
             self.handle.close()
 
         if hasattr(self, 'window'):
+            import glfw
             glfw.destroy_window(self.window)
             glfw.terminate()
 
