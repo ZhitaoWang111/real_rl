@@ -189,6 +189,9 @@ class PikaIntervention2(gym.ActionWrapper):
             print(f"[Warning] Keyboard listener disabled: {e}")
 
         self.reset_ready = False
+        self.done_env = False
+
+        print(f" [Info] Pika Intervention Wrapper initialized. ")
 
     def on_key(self, key):
         # 分号在 pynput 里是 KeyCode，需要这样比
@@ -205,8 +208,11 @@ class PikaIntervention2(gym.ActionWrapper):
             elif key.char == 'r':
                 # 中断
                 self.terminated = True
-            elif key == keyboard.Key.esc:  # 示例：按下 ESC 键退出
+            elif key.char == 'p':  # 示例：按下 ESC 键退出
                 print("ESC 按键被按下，停止监听。")
+                # 关闭环境
+                self.done_env = True
+                self.env.close()
                 self.listener.stop()
         except AttributeError:
             # 其他特殊键不处理
@@ -262,7 +268,9 @@ class PikaIntervention2(gym.ActionWrapper):
             cur_joint_state = self.env.get_cur_joint_pos() 
             # step 3 : 计算 delta 关节角
             expert_a = target_joint_action - cur_joint_state
+            # print(f"[Pika Intervention] target_joint_action: {expert_a}")
             # step 4 : 将 delta 关节角 clip
+            # 0.05, 0.03, 0.03, 0.03, 0.03, 0.05, 0.005
             max_delta_per_step = np.array([
                 0.05, 0.03, 0.03, 0.03, 0.03, 0.05, 0.005
             ], dtype=np.float32)
@@ -296,7 +304,7 @@ class PikaIntervention2(gym.ActionWrapper):
     def reset(self, **kwargs):
         obs, info = self.env.reset(**kwargs)
         ### human reset logic ###
-        while not self.reset_ready:
+        while not self.reset_ready and not self.done_env:
             print("[Info] 等待人工复位...按下 'w' 继续")
             time.sleep(0.1)
         time.sleep(1.5)

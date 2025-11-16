@@ -33,7 +33,7 @@ class MujocoGymEnv(gym.Env):
     ):
         self.is_real_env = is_real_env
         if self.is_real_env is False:
-            self._model = mujoco.MjModel.from_xml_path("/home/zhou/cfy/gs_sim/mujoco_menagerie/agilex_piper/piper.xml")
+            self._model = mujoco.MjModel.from_xml_path("/home/cfy/cfy/go2-rl-sim/mujoco_menagerie/agilex_piper/scene.xml")
             self._model.vis.global_.offwidth = render_spec.width
             self._model.vis.global_.offheight = render_spec.height
             self._data = mujoco.MjData(self._model)
@@ -57,9 +57,7 @@ class MujocoGymEnv(gym.Env):
         self.sync()
 
     def close(self) -> None:
-        # if self._viewer is not None:
-        #     self._viewer.close()
-        #     self._viewer = None
+        
         if hasattr(self, 'handle'):
             self.handle.close()
 

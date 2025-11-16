@@ -5,7 +5,7 @@ import jax
 import jax.numpy as jnp
 
 from serl_launcher.common.common import default_init
-
+import numpy as np
 
 class ValueCritic(nn.Module):
     encoder: nn.Module
@@ -114,6 +114,16 @@ def ensemblize(cls, num_qs, out_axes=0):
 
     return EnsembleModule
 
+
+def layer_init(std=np.sqrt(1), bias_const=0.0):
+    # 权重初始化：使用正交初始化
+    weight_init = nn.initializers.orthogonal(std)
+    
+    # 偏置初始化：使用常数初始化
+    bias_init = nn.initializers.constant(bias_const)
+    
+    return weight_init, bias_init
+
 class Policy(nn.Module):
     encoder: Optional[nn.Module]
     network: nn.Module
@@ -136,12 +146,18 @@ class Policy(nn.Module):
 
         outputs = self.network(obs_enc, train=train)
 
-        means = nn.Dense(self.action_dim, kernel_init=default_init())(outputs)
+        weight_init, bias_init = layer_init()
+
+        # means = nn.Dense(self.action_dim, kernel_init=default_init())(outputs)
+        means = nn.Dense(self.action_dim, kernel_init=weight_init, bias_init=bias_init)(outputs)
+
         if self.fixed_std is None:
+            ## 默认
             if self.std_parameterization == "exp":
-                log_stds = nn.Dense(self.action_dim, kernel_init=default_init())(
-                    outputs
-                )
+                # log_stds = nn.Dense(self.action_dim, kernel_init=default_init())(
+                #     outputs
+                # )
+                log_stds = nn.Dense(self.action_dim, kernel_init=weight_init, bias_init=bias_init)(outputs)
                 stds = jnp.exp(log_stds)
             elif self.std_parameterization == "softplus":
                 stds = nn.Dense(self.action_dim, kernel_init=default_init())(outputs)
@@ -161,7 +177,11 @@ class Policy(nn.Module):
 
         # Clip stds to avoid numerical instability
         # For a normal distribution under MaxEnt, optimal std scales with sqrt(temperature)
-        stds = jnp.clip(stds, self.std_min, self.std_max) * jnp.sqrt(temperature)
+
+        std_min = 1e-6  # 设置最小标准差
+        std_max = 1  # 设置最大标准差
+        # stds = jnp.clip(stds, self.std_min, self.std_max) * jnp.sqrt(temperature)
+        stds = jnp.clip(stds, std_min, std_max) * jnp.sqrt(temperature)
 
         if self.tanh_squash_distribution and not non_squash_distribution:
             distribution = TanhMultivariateNormalDiag(

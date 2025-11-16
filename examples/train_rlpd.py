@@ -44,15 +44,6 @@ from serl_launcher.data.data_store import MemoryEfficientReplayBufferDataStore
 
 from experiments.mappings import CONFIG_MAPPING
 
-stop_flag = False
-
-def signal_handler(signum, frame):
-    global stop_flag
-    print(f"\n[Info] Received signal {signum}, stopping...")
-    stop_flag = True
-
-signal.signal(signal.SIGINT, signal_handler)
-signal.signal(signal.SIGTERM, signal_handler)
 
 FLAGS = flags.FLAGS
 
@@ -88,7 +79,6 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
     """
     This is the actor loop, which runs when "--actor" is set to True.
     """
-    global stop_flag
     if FLAGS.eval_checkpoint_step:
         success_counter = 0
         time_list = []
@@ -141,7 +131,6 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
         "actor_env": data_store,                # 普通采样数据
         "actor_env_intvn": intvn_data_store,    # 干预采样数据
     }
-
     client = TrainerClient(
         "actor_env",                    # name
         FLAGS.ip,                       # server ip
@@ -174,9 +163,6 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
 
     pbar = tqdm.tqdm(range(start_step, config.max_steps), dynamic_ncols=True)
     for step in pbar:
-        if stop_flag:  # 添加这个检查
-            print("[Info] Actor loop stopped by user")
-            break
         timer.tick("total")
 
         with timer.context("sample_actions"):
@@ -241,7 +227,12 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
                 already_intervened = False
                 client.update()
                 obs, _ = env.reset()
+                print(f"111")
+            if env.done_env:
+                print(f"222")
+                break
 
+        
         if step > 0 and config.buffer_period > 0 and step % config.buffer_period == 0:
             # dump to pickle file
             buffer_path = os.path.join(FLAGS.checkpoint_path, "buffer")
@@ -260,10 +251,13 @@ def actor(agent, data_store, intvn_data_store, env, sampling_rng):
                 demo_transitions = []
 
         timer.tock("total")
-
         if step % config.log_period == 0:
             stats = {"timer": timer.get_average_times()}
             client.request("send-stats", stats)
+    pbar.close()
+    client.stop()
+    print(f"333")
+    
 
 
 ##############################################################################
@@ -555,8 +549,8 @@ def main(_):
     elif FLAGS.actor:
         sampling_rng = jax.device_put(sampling_rng, sharding.replicate())
         # 环形队列
-        data_store = QueuedDataStore(50000)  # the queue size on the actor
-        intvn_data_store = QueuedDataStore(50000)
+        data_store = QueuedDataStore(20000)  # the queue size on the actor
+        intvn_data_store = QueuedDataStore(20000)
 
         # actor loop
         print_green("starting actor loop")
@@ -567,9 +561,13 @@ def main(_):
             env,
             sampling_rng,
         )
+        print(f"444")
 
     else:
         raise NotImplementedError("Must be either a learner or an actor")
+    
+    
+    print(f"555")
 
 
 if __name__ == "__main__":

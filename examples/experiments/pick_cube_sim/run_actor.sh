@@ -3,7 +3,7 @@ export XLA_PYTHON_CLIENT_MEM_FRACTION=.1 && \
 
 
 TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
-BASE_DIR="/home/zhou/wzt/real_rl/ckpt"
+BASE_DIR="/home/cfy/cfy/rss2026/real_rl/ckpt"
 CKPT_DIR="$BASE_DIR/run_$TIMESTAMP"
 
 # CKPT_DIR="/home/zhou/wzt/real_rl/ckpt/run_2025-11-14_11-17-29"

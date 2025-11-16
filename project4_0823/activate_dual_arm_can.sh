@@ -7,9 +7,9 @@ WORKSPACE_DIR=$(realpath "$SCRIPT_DIR/piper_sdk")
 echo "切换到工作空间目录: $WORKSPACE_DIR"
 cd "$WORKSPACE_DIR" || { echo "❌ 目录不存在: $WORKSPACE_DIR"; exit 1; }
 # 激活 CAN0
-bash can_activate.sh can1 1000000 "3-5.1:1.0" || { echo "CAN0 激活失败！"; exit 1; }
+bash can_activate.sh can1 1000000 "1-5.1.3:1.0" || { echo "CAN0 激活失败！"; exit 1; }
 
 # 激活 CAN1
-bash can_activate.sh can2 1000000 "3-5.3:1.0" || { echo "CAN1 激活失败！"; exit 1; }
+# bash can_activate.sh can2 1000000 "3-5.3:1.0" || { echo "CAN1 激活失败！"; exit 1; }
 
 echo "左臂 CAN1 和 右臂 CAN2 已成功激活！"

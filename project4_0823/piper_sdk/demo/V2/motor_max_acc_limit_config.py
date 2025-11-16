@@ -61,13 +61,13 @@ def enable_fun(piper:C_PiperInterface_V2, enable:bool):
     return resp
 
 if __name__ == "__main__":
-    piper = C_PiperInterface_V2("can0")
+    piper = C_PiperInterface_V2("can1")
     piper.ConnectPort()
     piper.EnableArm(7)
     enable_fun(piper=piper, enable=False)
     # 5rad/s
     for i in range(1,7):
-        piper.JointMaxAccConfig(i, 500)
+        piper.JointMaxAccConfig(i, 100)
         print(i)
         time.sleep(0.5) # 数据的写入需要时间，发送完上一帧设定指令，需要延时一会
     while True:

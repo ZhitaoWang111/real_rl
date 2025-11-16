@@ -51,9 +51,10 @@ if __name__ == "__main__":
     piper.GripperCtrl(0,1000,0x01, 0)
     factor = 57295.7795 #1000*180/3.1415926
     count = 0
+    ori_position = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0]
+    target_position = [0.0, 1.03506108, -0.8056719, -0.01169284, 0.78328098, 0.0, 1]
     while True:
         print(piper.GetArmStatus())
-        position = [0,0,0,0,0,0,1]
         joint_0 = round(position[0]*factor)
         joint_1 = round(position[1]*factor)
         joint_2 = round(position[2]*factor)

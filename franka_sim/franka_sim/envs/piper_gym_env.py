@@ -120,8 +120,9 @@ class PiperPickCubeGymEnv(MujocoGymEnv):
 
 
         # 真实机器人
+        # 
         self.cameras_cfg = {
-            "top"  : OpenCVCameraConfig(index_or_path=4, width=640, height=480, fps=30),
+            "top"  : OpenCVCameraConfig(index_or_path=10, width=640, height=480, fps=30),
             # "wrist": OpenCVCameraConfig(index_or_path=4, width=640, height=480, fps=30),
         }
 
@@ -199,6 +200,11 @@ class PiperPickCubeGymEnv(MujocoGymEnv):
         self.terminated = False
         print(f"[Info] ============ Reset done ============")
         return obs, {"succeed": False}
+    
+    def close(self) -> None:
+        super().close()
+        for cam in self.cameras.values():
+            cam.disconnect()
 
     def step(
         self, action: np.ndarray, replaced
@@ -235,6 +241,8 @@ class PiperPickCubeGymEnv(MujocoGymEnv):
         joint_targets[6] = 0
         # step 3 : 将 joint_targets 限制在 joint_limits 内
         joint_targets = np.clip(joint_targets, self.joint_limits[:, 0], self.joint_limits[:, 1])
+        # if not replaced:
+        #     print(f"[neural ] target_joint_action: {delta_action}")
         
         
         if self.is_real_env:
@@ -316,7 +324,6 @@ class PiperPickCubeGymEnv(MujocoGymEnv):
 
     def _compute_observation(self) -> dict:
         obs = {"state": {}, "images": {}}
-
         for cam_key, cam in self.cameras.items():
             cam_ori = cam.async_read()
             # cam_resized = cv2.resize(cam_ori, (128, 128), interpolation=cv2.INTER_AREA)
@@ -342,6 +349,7 @@ class PiperPickCubeGymEnv(MujocoGymEnv):
             else:
                 # 形状异常就跳过，避免抛错
                 print(f"[warn] skip logging {cam_key}, unexpected shape {img.shape}")
+
         return obs
 
 

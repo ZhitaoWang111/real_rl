@@ -43,7 +43,7 @@ def enable_fun(piper:C_PiperInterface_V2):
         exit(0)
 
 if __name__ == "__main__":
-    piper = C_PiperInterface_V2("can0")
+    piper = C_PiperInterface_V2("can1")
     piper.ConnectPort()
     piper.EnableArm(7)
     enable_fun(piper=piper)
@@ -71,7 +71,7 @@ if __name__ == "__main__":
             position = [0,0,0,0,0,0,0]
             # position = [0.2,0.2,-0.2,0.3,-0.2,0.5,0.08]
             count = 0
-        
+        position = [0,0,0,0,0,0,0]
         joint_0 = round(position[0]*factor)
         joint_1 = round(position[1]*factor)
         joint_2 = round(position[2]*factor)

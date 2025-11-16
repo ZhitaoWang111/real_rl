@@ -532,6 +532,7 @@ class SACAgentHybridSingleArm(flax.struct.PyTreeNode):
             ),
         )
 
+    ## agent 初始化
     @classmethod
     def create_pixels(
         cls,
@@ -629,7 +630,7 @@ class SACAgentHybridSingleArm(flax.struct.PyTreeNode):
         grasp_critic_def = partial(
             GraspCritic, encoder=encoders["grasp_critic"], network=grasp_critic_backbone
         )(name="grasp_critic")
-        
+
         policy_def = Policy(
             encoder=encoders["actor"],
             network=MLP(**policy_network_kwargs),

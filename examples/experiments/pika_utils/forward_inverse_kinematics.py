@@ -67,7 +67,7 @@ class Arm_FK:
 
         rospack = rospkg.RosPack()
         # package_path = rospack.get_path('piper_description') 
-        package_path = "/home/zhou/wzt/real_rl/piper_description"
+        package_path = "/home/cfy/cfy/rss2026/real_rl/piper_description" # change this depend on your path to piper urdf
         urdf_path = os.path.join(package_path, 'urdf', 'piper_description' + ('-lift.urdf' if args.lift else '.urdf'))
 
         self.robot = pin.RobotWrapper.BuildFromURDF(
